@@ -11,7 +11,7 @@ options(error = beep)
 # 0. Importa --------------------------------------------------------------
 #
 alvaras_trusted <- arrow::read_parquet(here("inputs", "3_trusted", "Alvaras", 
-                                            "alvaras.parquet"))
+                                            "alvaras_old.parquet"))
 
 # 1. Ajusta observações ---------------------------------------------------
 
@@ -122,7 +122,7 @@ alvaras_trusted_ajust_2 <- alvaras_trusted_ajust %>%
   )
 
 # Atributos necessários:
-# desccricao_tipo, ind_edificacao_nova, ind_correcao
+# descricao_tipo, ind_edificacao_nova, ind_correcao
 
 
 # Alvarás relevantes para contabilidade:
@@ -961,7 +961,9 @@ atts_ind_parcelamento <- alvaras_trusted_ajust_2 %>%
   
   # B - Trata em separado atributos numéricos em casos de parcelamento
   # Somente parcelamentos
-  filter(ind_parcelamento == TRUE) %>%
+  group_by(sql_incra) %>%
+  filter(any(ind_parcelamento == TRUE)) %>%
+  ungroup() %>%
   # Ordena mais recente para mais antigo
   arrange(desc(data_aprovacao)) %>%
   # Agrupa por Área de terreno e pega informação do mais recente por grupo
@@ -969,9 +971,11 @@ atts_ind_parcelamento <- alvaras_trusted_ajust_2 %>%
   group_by(sql_incra, descricao_tipo, area_do_terreno) %>%
   summarize(
     area_do_terreno = first(na.omit(
-      area_do_terreno[which(ind_aprovacao == TRUE | ind_execucao == TRUE)])),
+      area_do_terreno[which(ind_aprovacao == TRUE | ind_execucao == TRUE |
+                              ind_conclusao == TRUE)])),
     area_da_construcao = first(na.omit(
-      area_da_construcao[which(ind_aprovacao == TRUE | ind_execucao == TRUE)])), 
+      area_da_construcao[which(ind_aprovacao == TRUE | ind_execucao == TRUE |
+                                 ind_conclusao == TRUE)])),  
     n_blocos = first(na.omit(
       n_blocos[which(ind_aprovacao == TRUE | ind_execucao == TRUE)])),
     n_pavimentos = first(na.omit(
@@ -995,12 +999,14 @@ alvaras_trusted_por_sql_incra_ajust <-
   bind_rows(
     # Não-parcelamentos
     alvaras_trusted_por_sql_incra %>%
-      filter(ind_parcelamento != TRUE | is.na(ind_parcelamento)),
+      filter(!sql_incra %in% atts_ind_parcelamento$sql_incra),
     # Parcelamentos
     alvaras_trusted_por_sql_incra %>%
-      filter(ind_parcelamento == TRUE) %>%
-      select(-names(atts_num_parcelamentos), sql_incra) %>%
-      left_join(atts_num_parcelamentos)
+      filter(sql_incra %in% atts_ind_parcelamento$sql_incra) %>%
+      select(-c(
+        area_do_terreno, area_da_construcao, n_blocos,n_pavimentos,
+        n_unidades, n_pavimentos_por_bloco, n_unidades_por_bloco )) %>%
+      left_join(atts_ind_parcelamento)
   )
 
 #
@@ -1013,9 +1019,10 @@ list(alvaras_trusted_por_sql_incra["n_unidades"],
 # 9. Exporta --------------------------------------------------------------
 
 # Dados tratados em formato .xlsx
-writexl::write_xlsx(alvaras_por_lote,
+writexl::write_xlsx(alvaras_por_lote %>%
+                      filter(ind_parcelamento == TRUE),
                     here("inputs", "4_refined", "Alvaras", 
-                         "alvaras_por_lote_ajust.xlsx"))
+                         "alvaras_por_lote_parcelamentos.xlsx"))
 
 # Dados tratados em formato .xlsx
 writexl::write_xlsx(tipologia_descricao,
