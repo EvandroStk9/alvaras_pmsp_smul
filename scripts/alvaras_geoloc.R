@@ -176,34 +176,10 @@ geo_alvaras_por_lote_1 <- join_lotes %>%
 
 # 3/3 - Geocode pela API do ArcGis
 
-# 890 sem geocode por herança de outra entidade
+# 
 alvaras_por_lote_no_geo <- alvaras_por_lote %>%
   filter(!sql_incra %in% c(geo_alvaras_por_lote_1$sql_incra)) #%>%
-  # filter(!sql_incra %in% c(geo_alvaras_por_lote_2$sql_incra))
-
-
-# API comunidade ArcGIS: https://developers.arcgis.com/rest/
-# geocode_arcgis <- tidygeocoder::geocode(
-#   alvaras_por_lote_no_geo %>%
-#     mutate(endereco_key = if_else(!is.na(bairro),
-#                                     paste0(endereco_ultimo, " ", bairro, " SAO PAULO SP"),
-#                                     paste0(endereco_ultimo, " SAO PAULO SP")) %>%
-#              str_remove_all(";|_|/") %>%
-#              str_squish(),
-#            city = "São Paulo",
-#            state = "SP"),
-#   address = "endereco_key",
-#   method = "osm"
-# )
-
-# Retorno de 890 de 890 (100%)
-# Todos dentro do perímetro de São Paulo 
-# sf_geocode_arcgis <- geocode_arcgis %>%
-#   filter(!is.na(lat) | !is.na(long)) %>%
-#   st_as_sf(coords = c("long", "lat"),
-#            crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs") %>% # 4326 CRS
-#   st_transform(crs = 4674) %>%
-#   st_filter(sf_geo_sp)
+# filter(!sql_incra %in% c(geo_alvaras_por_lote_2$sql_incra))
 
 
 # API HERE
@@ -240,8 +216,40 @@ plot_map_here <- ggplot(data = sf_geocode_here) +
 #
 plotly::ggplotly(plot_map_here)
 
+# 54 sem geocode via Here
+alvaras_por_lote_no_geo_2 <- sf_geocode_here %>%
+  filter(st_is_empty(.) == TRUE) %>%
+  st_drop_geometry()
+
+# API comunidade ArcGIS: https://developers.arcgis.com/rest/
+geocode_arcgis <- tidygeocoder::geocode(
+  alvaras_por_lote_no_geo_2 %>%
+    mutate(
+      endereco_key = if_else(!is.na(bairro),
+                             paste0(endereco_ultimo, " ", bairro, " SAO PAULO SP"),
+                             paste0(endereco_ultimo, " ", subprefeitura, " SAO PAULO SP")) %>%
+        str_remove_all(";|_|/") %>%
+        str_squish(),
+      # city = "São Paulo",
+      # state = "SP"
+    ),
+  address = "endereco_key",
+  method = "arcgis"
+)
+
+# Retorno de 54 de 54 (100%)
+# Todos dentro do perímetro de São Paulo
+sf_geocode_arcgis <- geocode_arcgis %>%
+  filter(!is.na(lat) | !is.na(long)) %>%
+  st_as_sf(coords = c("long", "lat"),
+           crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs") %>% # 4326 CRS
+  st_transform(crs = 4674) %>%
+  st_filter(sf_geo_sp)
+
 #
 geo_alvaras_por_lote_3 <- sf_geocode_here %>%
+  filter(st_is_empty(.) == FALSE) %>%
+  bind_rows(sf_geocode_arcgis) %>%
   select(sql_ajust, sql_incra, endereco_ultimo)
 
 # 5. Unifica tabelas geocodificadas em uma -------------------------------------
@@ -292,9 +300,7 @@ ggplot(data = geo_alvaras_por_lote %>% filter(categoria_de_uso_grupo != "Outra")
   scale_color_manual(values = c("#009491", "#c4161c")) +
   theme_void()
 
-
 # [Ajustar sql's duplicados de 2004]
-
 
 # 6. Exporta --------------------------------------------------------------
 
