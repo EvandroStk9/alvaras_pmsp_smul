@@ -18,6 +18,7 @@ alvaras_por_lote <- arrow::read_parquet(here("inputs", "3_trusted", "Alvaras",
                                                "alvaras_por_lote.parquet")) %>%
   filter(ind_edificacao_nova == TRUE) %>%
   filter(ind_aprovacao == TRUE & ind_execucao == TRUE) %>%
+  # É necessário ajustar sql, removendo caracteres adicionais, para comparação
   mutate(sql_ajust = case_when(nchar(sql_incra) == 14 ~ str_remove_all(sql_incra, "\\.") %>%
                                  str_remove_all("-") %>%
                                  str_sub(end = -2L),

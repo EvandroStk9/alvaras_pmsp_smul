@@ -21,35 +21,35 @@ alvaras_raw %>%
   glimpse()
 
 # character
-  # "ano",
-  # "mes",
-  # "alvara",
-  # "descricao",
-  # "unidade_pmsp",
-  # "categoria_de_uso",
-  # "processo",
-  # "sql_incra",
-  # "endereco",
-  # "bairro",
-  # "administracao_regional",
-  # "proprietario",
-  # "dirigente_tecnico",
-  # "dirigente_responsavel",
-  # "projeto_autor",
-  # "projeto_responsavel",
-  # "n_blocos_pavimentos_unidades",
-  # "zona_de_uso_registro",
-  # "zona_de_uso_anterior",
+# "ano",
+# "mes",
+# "alvara",
+# "descricao",
+# "unidade_pmsp",
+# "categoria_de_uso",
+# "processo",
+# "sql_incra",
+# "endereco",
+# "bairro",
+# "administracao_regional",
+# "proprietario",
+# "dirigente_tecnico",
+# "dirigente_responsavel",
+# "projeto_autor",
+# "projeto_responsavel",
+# "n_blocos_pavimentos_unidades",
+# "zona_de_uso_registro",
+# "zona_de_uso_anterior",
 # date
-  # "data_aprovacao",
-  # "data_autuacao",
+# "data_aprovacao",
+# "data_autuacao",
 # double
 
-  # "n_blocos",
-  # "n_pavimentos_por_bloco",
-  # "n_unidades_por_bloco",
-  # "area_da_construcao",
-  # "area_do_terreno"
+# "n_blocos",
+# "n_pavimentos_por_bloco",
+# "n_unidades_por_bloco",
+# "area_da_construcao",
+# "area_do_terreno"
 
 #
 alvaras_trimed <- map_df(alvaras_raw, ~ str_trim(.x) %>% 
@@ -69,12 +69,12 @@ map(alvaras_trimed[c("data_aprovacao", "alvara", "processo", "data_autuacao", "s
 # Chave relacional excluindo variáveis alvo do tratamento
 alvaras_key <- alvaras_trimed %>%
   select(-c(# datas
-            "data_aprovacao", "data_autuacao", 
-            # numericas
-            "area_do_terreno", "area_da_construcao", "n_blocos_pavimentos_unidades", 
-            "n_blocos", "n_pavimentos_por_bloco", "n_unidades_por_bloco",
-            # categoricas
-            "ano", "mes", "descricao", "categoria_de_uso", "sql_incra", "endereco"))
+    "data_aprovacao", "data_autuacao", 
+    # numericas
+    "area_do_terreno", "area_da_construcao", "n_blocos_pavimentos_unidades", 
+    "n_blocos", "n_pavimentos_por_bloco", "n_unidades_por_bloco",
+    # categoricas
+    "ano", "mes", "descricao", "categoria_de_uso", "sql_incra", "endereco"))
 
 # 3. Ajusta datas ---------------------------------------------------------
 
@@ -101,8 +101,8 @@ atts_datas <- alvaras_trimed %>%
   select(id, starts_with("data_")) %>%
   mutate(across(starts_with("data_"), 
                 ~ case_when(nchar(.x) == 8 ~ str_replace_all(.x, "$02", "2002") %>%
-                            str_replace_all("/", "-") %>%
-                            dmy(),
+                              str_replace_all("/", "-") %>%
+                              dmy(),
                             nchar(.x) == 10 ~ str_replace_all(.x, "/", "-") %>%
                               dmy(),
                             nchar(.x) == 19 ~ as_date(.x),
@@ -132,11 +132,11 @@ atts_areas <- alvaras_trimed %>%
               str_replace(",", ".") %>%
               as.numeric(),
             area_da_construcao = if_else(str_detect(str_sub(area_da_construcao, -3L), "\\."),
-                                      area_da_construcao,
-                                      str_remove_all(area_da_construcao, "\\.")) %>%
+                                         area_da_construcao,
+                                         str_remove_all(area_da_construcao, "\\.")) %>%
               str_replace(",", ".") %>%
               as.numeric())
-  
+
 
 # B - Blocos-Pavimentos-Unidades agregados
 
@@ -168,7 +168,7 @@ padroes_n_blocos_pavimentos_unidades <- alvaras_trimed %>%
   unnest(data) %>%
   mutate(var = str_extract(tokens, "[a-z]+"), # extrai alfabéticas
          n = as.integer(lead(str_extract(tokens, "[-+]?[0-9]*\\.?[0-9]+"))) # extrai numéricas e tipa a variável
-         ) %>% 
+  ) %>% 
   na.omit() %>%
   select(-tokens)
 
@@ -235,7 +235,7 @@ map(alvaras_trimed %>%
 att_n_blocos <- alvaras_trimed %>%
   select(id, n_blocos) %>%
   mutate(n_blocos_raw = n_blocos,
-         ) %>%
+  ) %>%
   nest(data = n_blocos) %>%
   mutate(data = map(data, ~unnest_tokens(.x, tokens, colnames(.x), token = "words"))) %>%
   unnest(data) %>%
@@ -285,7 +285,7 @@ list(att_n_blocos, att_n_pavimentos_por_bloco, att_n_unidades_por_bloco) %>%
   mutate(list_n_pavimentos = map2(list_n_blocos, list_n_pavimentos_por_bloco, ~.x * .y),
          list_n_unidades = map2(list_n_blocos, list_n_unidades_por_bloco, ~.x * .y)) %>% 
   filter(!complete.cases(n_blocos_raw) | !complete.cases(n_pavimentos_por_bloco_raw) | 
-         !complete.cases(n_unidades_por_bloco_raw)) %>%
+           !complete.cases(n_unidades_por_bloco_raw)) %>%
   view()
 
 # Obs: Quando vetores tem diferentes comprimentos multiplicação vetorial simples falha
@@ -330,10 +330,11 @@ names(att_n_blocos_pavimentos_unidades_1 %>% select(-ends_with("_raw"))) ==
   names(att_n_blocos_pavimentos_unidades_2 %>% select(-ends_with("_raw")))
 
 # F - Unifica atributos de Blocos-Pavimentos-Unidades
-att_n_blocos_pavimentos_unidades <- full_join(att_n_blocos_pavimentos_unidades_1, 
-                  att_n_blocos_pavimentos_unidades_2, 
-                  by = names(att_n_blocos_pavimentos_unidades_1 %>% 
-                               select(-ends_with("_raw")))) %>%
+att_n_blocos_pavimentos_unidades <- full_join(
+  att_n_blocos_pavimentos_unidades_1, 
+  att_n_blocos_pavimentos_unidades_2, 
+  by = names(att_n_blocos_pavimentos_unidades_1 %>% 
+               select(-ends_with("_raw")))) %>%
   mutate(n_pavimentos_por_bloco = n_pavimentos/n_blocos,
          n_unidades_por_bloco = n_unidades/n_blocos)
 
@@ -417,12 +418,6 @@ att_descricao <- alvaras_trimed %>%
       ind_execucao == TRUE ~ "EXECUCAO",
       ind_conclusao == TRUE ~ "CONCLUSAO",
       TRUE ~ "OUTRO")
-    # ind_relevante = if_else(
-    #   str_detect(descricao, "APROVACAO|EXECUCAO") & 
-    #     str_detect(descricao, "EDIFICACAO NOVA") &
-    #     negate(str_detect)(descricao, "APOSTILAMENTO|REFORMA|DESPACHO|DEMOLICAO"),
-    #   TRUE, FALSE)
-    
     # Alvarás relevantes para M&A de licenciamentos imobiliários residenciais:
     # Aprovação, Execução ou Aprovação e Execução de Edificação Nova
     # Loteamento e Conclusão (quando lote está atribuido à edificaçao nova)
@@ -455,7 +450,7 @@ padroes_processo <- alvaras_trimed %>%
 #
 map(padroes_processo, ~ .x %>%
       select(processo#, everything()
-             ))
+      ))
 
 # 1 - 2003-1.026.714-1 | 2014-0.109.953-6 [29,004 observações]
 # 2 - 0000-2003-1.035.848-1 | 0000-2018-0.067.765-7 [15,370 observações]
@@ -471,7 +466,7 @@ att_categoria_de_uso <- alvaras_trimed %>%
             ind_r2h = if_else(str_detect(categoria_de_uso, "R2H"), TRUE, FALSE),
             ind_his = if_else(str_detect(categoria_de_uso, "HIS|H.I.S"), TRUE, FALSE),
             ind_hmp = if_else(str_detect(categoria_de_uso, "HMP|H.M.P"), TRUE, FALSE),
-            ind_ezeis = if_else(str_detect(categoria_de_uso, "ZEIS"), TRUE, FALSE))
+            ind_ezeis = if_else(str_detect(categoria_de_uso, "EZEIS"), TRUE, FALSE))
 #
 att_categoria_de_uso %>%
   count(ind_his)
@@ -543,7 +538,7 @@ alvaras_sqls_ajust <- pmsp_sheets %>%
   map(~filter(.x, alvara %in% alvaras_sqls_nulos$alvara)) %>%
   reduce(full_join, by = c("ano", "alvara", "sql_incra")) %>%
   full_join(alvaras_trimed %>% transmute(id, alvara, sql_incra),
-                                         by = "alvara", suffix = c("_new", "_old")) %>%
+            by = "alvara", suffix = c("_new", "_old")) %>%
   transmute(id,
             sql_incra = if_else(str_detect(sql_incra_old, pattern = "\\+1"), 
                                 sql_incra_new, sql_incra_old))
@@ -624,7 +619,7 @@ att_endereco <- alvaras_trimed %>%
   arrange(desc(data_aprovacao)) %>%
   mutate(endereco= first(endereco_ajust_2)#,
          #ind_diff_endereco = if_else(endereco_ajust_2 != endereco, TRUE, FALSE)
-         ) %>%
+  ) %>%
   ungroup()
 
 ## NPL para tratar endereços
@@ -669,7 +664,6 @@ alvaras_trusted_not_unique <- list(alvaras_key, atts_datas, atts_numericos, att_
 # 1176 alvarás com número de alvará duplicado sendo 305 deles relevantes
 alvaras_trusted_not_unique %>%
   janitor::get_dupes(alvara) %>%
-  #count(ind_relevante)
   count(descricao_tipo != "Outro" & ind_edificacao_nova == TRUE)
 
 # Número duplicado, entretanto, não indica necessariamente mesmo alvará!
@@ -702,7 +696,7 @@ alvaras_trusted %>%
 alvaras_trusted %>%
   filter(descricao_tipo != "Outro" & ind_edificacao_nova == TRUE) %>%
   group_by(sql_incra, endereco) %>%
-    count(sort = TRUE)
+  count(sort = TRUE)
 
 # Até 9 enderecos distintos para mesmo sql em alvaras relevantes!
 # Obs: NA's devem ser tratados diferente
@@ -734,12 +728,12 @@ alvaras_trusted_por_endereco <- alvaras_trusted %>%
   group_by(endereco) %>%
   arrange(desc(data_aprovacao)) %>%
   summarize(
+    id_tipo = "endereco",
     ano_aprovacao = year(first(data_aprovacao[which(
       ind_aprovacao == TRUE & ind_edificacao_nova == TRUE)])),
     ano_execucao = year(first(data_aprovacao[which(
       ind_execucao == TRUE & ind_edificacao_nova == TRUE)])),
     n_alvaras = n(),
-    # n_alvaras_relevantes = length(which(ind_relevante == TRUE)),
     n_alvaras_aprovacao = length(which(ind_aprovacao == TRUE &
                                          ind_edificacao_nova == TRUE &
                                          ind_correcao == FALSE)),
@@ -759,20 +753,14 @@ alvaras_trusted_por_endereco <- alvaras_trusted %>%
     diff_dias_execucao = interval(data_validacao_projeto, 
                                   data_validacao_execucao) / days(1),
     unidade_pmsp = map_chr(list(unique(unidade_pmsp)), ~paste0(.x, collapse = "; ")),
-    # categoria_de_uso_classe = as.factor(case_when(
-    #   any(ind_his == TRUE) | any(ind_hmp == TRUE) ~ "ERP",
-    #   any(ind_his == FALSE) & any(ind_hmp == FALSE) ~ "ERM")),
     categoria_de_uso_grupo = as.factor(case_when(
       any(ind_his == TRUE) | any(ind_hmp == TRUE | any(ind_ezeis == TRUE)) ~ "ERP",
-      # any(str_detect(categoria_de_uso,"R2V")) ~ "R2V",
       any(str_detect(categoria_de_uso,
                      "R2V|R202|R302|R2H|R301|R302|R303|(?<!N)R1|(?<!N)R2")) ~ "ERM",
       # any(str_detect(categoria_de_uso,"NR")) ~ "NR",
       TRUE ~ "Outra"
     )),
-    # categoria_de_uso_registro = unique(unlist(str_split(categoria_de_uso, "; | - "))) %>% 
-    #   paste0(collapse = "; "),
-    categoria_de_uso_registro = map_chr(list(unique(na.omit(categoria_de_uso))), 
+    categoria_de_uso_lista = map_chr(list(unique(na.omit(categoria_de_uso))), 
                                         ~ paste0(.x, collapse = "; ")),
     area_do_terreno = first(na.omit(area_do_terreno[which(
       ind_edificacao_nova == TRUE & (ind_aprovacao == TRUE | 
@@ -811,18 +799,18 @@ alvaras_trusted_por_endereco <- alvaras_trusted %>%
     projeto_responsavel = map_chr(list(unique(na.omit(projeto_responsavel))), 
                                   ~ paste0(.x, collapse = "; ")),
     sql_incra = NA_character_,
-    endereco_ultimo = first(endereco),
+    sql_incra_lista = map_chr(list(unique(na.omit(sql_incra))), 
+                              ~ paste0(.x, collapse = "; ")),
     n_enderecos = 1,
-    endereco_registro = map_chr(list(unique(na.omit(endereco_raw))), 
+    endereco = first(endereco),
+    endereco_lista = map_chr(list(unique(na.omit(endereco_raw))), 
                                 ~ paste0(.x, collapse = "; ")),
-    bairro = first(bairro),
-    subprefeitura = map_chr(list(unique(na.omit(subprefeitura))), 
-                            ~ paste0(.x, collapse = "; ")),
+    bairro = first(na.omit(bairro)),
+    subprefeitura = first(na.omit(subprefeitura)),
     zona_de_uso_registro = map_chr(list(unique(na.omit(zona_de_uso_registro))), 
                                    ~ paste0(.x, collapse = "; ")),
     zona_de_uso_anterior = map_chr(list(unique(na.omit(zona_de_uso_anterior))), 
                                    ~ paste0(.x, collapse = "; ")),
-    # ind_relevante = if_else(any(ind_relevante == TRUE), TRUE, FALSE),
     ind_edificacao_nova = if_else(any(ind_edificacao_nova == TRUE), TRUE, FALSE),
     ind_aprovacao = if_else(any(ind_aprovacao == TRUE), TRUE, FALSE),
     ind_execucao = if_else(any(ind_execucao == TRUE), TRUE, FALSE),
@@ -832,9 +820,12 @@ alvaras_trusted_por_endereco <- alvaras_trusted %>%
     ind_ezeis = if_else(any(ind_ezeis == TRUE), TRUE, FALSE),
     ind_uso_misto = if_else(categoria_de_uso_grupo != "Outra" &
                               any(ind_edificacao_nova == TRUE) &
-                              any(str_detect(categoria_de_uso_registro,
+                              any(str_detect(categoria_de_uso_lista,
                                              "NR|C1|C2|C3|S1|S2|S3|E1|E2|E3|E4")), 
-                            TRUE, FALSE)
+                            TRUE, FALSE),
+    ind_zeis = if_else(any(str_detect(zona_de_uso_registro,
+                                      "ZEIS")),
+                       TRUE, FALSE),
   ) %>%
   ungroup()
 
@@ -844,6 +835,7 @@ alvaras_trusted_por_sql_incra <- alvaras_trusted %>%
   group_by(sql_incra) %>%
   arrange(desc(data_aprovacao)) %>% # importante para inferir que posição 1 é sempre data mais atual
   summarize(
+    id_tipo = "sql_incra",
     ano_aprovacao = year(first(data_aprovacao[which(
       ind_aprovacao == TRUE & ind_edificacao_nova == TRUE)])),
     ano_execucao = year(first(data_aprovacao[which(
@@ -874,7 +866,7 @@ alvaras_trusted_por_sql_incra <- alvaras_trusted %>%
                      "R2V|R202|R302|R2H|R301|R302|R303|(?<!N)R1|(?<!N)R2")) ~ "ERM",
       TRUE ~ "Outra"
     )),
-    categoria_de_uso_registro = map_chr(list(unique(na.omit(categoria_de_uso))), 
+    categoria_de_uso_lista = map_chr(list(unique(na.omit(categoria_de_uso))), 
                                         ~ paste0(.x, collapse = "; ")),
     area_do_terreno = first(na.omit(area_do_terreno[which(
       ind_edificacao_nova == TRUE & (ind_aprovacao == TRUE | 
@@ -913,13 +905,14 @@ alvaras_trusted_por_sql_incra <- alvaras_trusted %>%
     projeto_responsavel = map_chr(list(unique(na.omit(projeto_responsavel))), 
                                   ~ paste0(.x, collapse = "; ")),
     sql_incra = first(sql_incra),
-    endereco_ultimo = first(na.omit(endereco)),
+    sql_incra_lista = map_chr(list(unique(na.omit(sql_incra))), 
+                              ~ paste0(.x, collapse = "; ")),
     n_enderecos = n_distinct(endereco),
-    endereco_registro = map_chr(list(unique(na.omit(endereco_raw))), 
+    endereco = first(na.omit(endereco)),
+    endereco_lista= map_chr(list(unique(na.omit(endereco_raw))), 
                                 ~ paste0(.x, collapse = "; ")),
-    bairro = first(bairro),
-    subprefeitura = map_chr(list(unique(na.omit(subprefeitura))), 
-                            ~ paste0(.x, collapse = "; ")),
+    bairro = first(na.omit(bairro)),
+    subprefeitura = first(na.omit(subprefeitura)),
     zona_de_uso_registro = map_chr(list(unique(na.omit(zona_de_uso_registro))), 
                                    ~ paste0(.x, collapse = "; ")),
     zona_de_uso_anterior = map_chr(list(unique(na.omit(zona_de_uso_anterior))), 
@@ -933,10 +926,13 @@ alvaras_trusted_por_sql_incra <- alvaras_trusted %>%
     ind_ezeis = if_else(any(ind_ezeis == TRUE), TRUE, FALSE),
     ind_uso_misto = if_else(categoria_de_uso_grupo != "Outra" &
                               ind_edificacao_nova == TRUE &
-                              any(str_detect(categoria_de_uso_registro,
+                              any(str_detect(categoria_de_uso_lista,
                                              "NR|C1|C2|C3|S1|S2|S3|E1|E2|E3|E4")), 
-                            TRUE, FALSE)
-    ) %>%
+                            TRUE, FALSE),
+    ind_zeis = if_else(any(str_detect(zona_de_uso_registro,
+                                      "ZEIS")),
+                       TRUE, FALSE)
+  ) %>%
   ungroup()
 
 
@@ -966,7 +962,7 @@ atts_ind_parcelamento <- alvaras_trusted %>%
       mutate(    
         n_areas_terreno = length(unique(area_do_terreno[
           !is.na(area_do_terreno) & (ind_edificacao_nova == TRUE |
-            ind_loteamento == TRUE | ind_conclusao == TRUE)]))
+                                       ind_loteamento == TRUE | ind_conclusao == TRUE)]))
       ) %>%
       ungroup() %>%
       # Somente sql's com algum alvará relevante
@@ -999,8 +995,8 @@ atts_ind_parcelamento <- alvaras_trusted %>%
       mutate(
         n_caso_3 = length(unique(endereco[
           (ind_edificacao_nova == TRUE |
-            ind_loteamento == TRUE | ind_conclusao == TRUE) &
-                                            ind_correcao == FALSE])),
+             ind_loteamento == TRUE | ind_conclusao == TRUE) &
+            ind_correcao == FALSE])),
         ind_caso_3 = if_else(n_caso_3 > 1 & n_areas_terreno > 1, 
                              TRUE, FALSE)
       ) %>%
@@ -1014,7 +1010,7 @@ atts_ind_parcelamento <- alvaras_trusted %>%
         TRUE, FALSE)) %>%
       ungroup()
   ) %>%
-
+  
   # B - Trata em separado atributos numéricos em casos de parcelamento
   # Somente parcelamentos
   group_by(sql_incra) %>%
@@ -1111,18 +1107,18 @@ alvaras_trusted_por_lote %>%
   filter(ind_edificacao_nova == TRUE) %>%
   filter(n_enderecos > 1) %>%
   count()
-  
+
 # 8. Exporta -------------------------------------------------------------------
 
-#
+# Assegura a existência do diretório para exportação
 fs::dir_create(here("inputs", "3_trusted", "Alvaras"))
 
-#
+# Exporta alvarás individualizados
 arrow::write_parquet(alvaras_trusted, here("inputs", "3_trusted", "Alvaras", 
-                                       "alvaras.parquet"))
-#
+                                           "alvaras.parquet"))
+# Exporta alvarás agrupados
 arrow::write_parquet(alvaras_trusted_por_lote, here("inputs", "3_trusted", "Alvaras", 
-                                           "alvaras_por_lote.parquet"))
+                                                    "alvaras_por_lote.parquet"))
 
 #
 beepr::beep(8)
